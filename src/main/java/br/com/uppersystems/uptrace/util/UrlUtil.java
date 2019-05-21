@@ -1,9 +1,11 @@
 package br.com.uppersystems.uptrace.util;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 
 import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.util.ObjectUtils;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -29,7 +31,7 @@ public class UrlUtil {
             URL url = new URL(request.getRequestURL().toString());
 
             String query = request.getQueryString();
-            if (ObjectUtils.isNotEmpty(url) && ObjectUtils.isNotEmpty(query)) {
+            if (!ObjectUtils.isEmpty(url) && !ObjectUtils.isEmpty(query)) {
 
                 return url.toString() + "?" + query;
             } else {

@@ -1,19 +1,20 @@
 package br.com.uppersystems.uptrace.aop;
 
-import br.com.uppersystems.uptrace.trace.TraceContextHolder;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
+import java.lang.reflect.Method;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
+import br.com.uppersystems.uptrace.trace.StackTrace;
+import br.com.uppersystems.uptrace.trace.TraceContextHolder;
+import lombok.extern.slf4j.Slf4j;
 
 @Aspect
 @Component
@@ -33,13 +34,11 @@ public class LoggingAspect {
 
         String path = "";
         MethodSignature ms = null;
-        System.out.println("Simmmmmm");
-
 
         Object klass = joinPoint.getTarget();
         RequestMapping requestMappingResource = klass.getClass().getAnnotation(RequestMapping.class);
 
-        if(ObjectUtils.isNotEmpty(requestMappingResource) && requestMappingResource.value().length > 0){
+        if(!ObjectUtils.isEmpty(requestMappingResource) && requestMappingResource.value().length > 0){
             path = requestMappingResource.value()[0];
         }
 
@@ -49,9 +48,9 @@ public class LoggingAspect {
 
         GetMapping requestMapping = m.getAnnotation(GetMapping.class);
 
-        if(ObjectUtils.isNotEmpty(requestMapping)){
+        if(!ObjectUtils.isEmpty(requestMapping)){
 
-            if(ObjectUtils.isNotEmpty(requestMapping.value()) && requestMapping.value().length > 0){
+            if(!ObjectUtils.isEmpty(requestMapping.value()) && requestMapping.value().length > 0){
                 path += requestMapping.value()[0];
             }
 
@@ -59,9 +58,27 @@ public class LoggingAspect {
 
         TraceContextHolder.getInstance().getActualTrace().setPattern(path);
 
-        proceed = joinPoint.proceed();
+        Throwable upThrowable = null;
+        try {
+
+            proceed = joinPoint.proceed();
+        } catch (Throwable throwable) {
+
+            upThrowable = throwable;
+        }
+
+        if(upThrowable != null){
+
+        	TraceContextHolder.getInstance().getActualTrace().setMethod(ms.toShortString());
+            TraceContextHolder.getInstance().getActualTrace().setPattern(path);
+            StackTrace stackTrace = new StackTrace(upThrowable.getClass().getName(), upThrowable.getMessage(), upThrowable.getMessage());
+            TraceContextHolder.getInstance().getActualTrace().setStackTrace(stackTrace);
+            
+            throw upThrowable;
+        }
 
         return proceed;
 
     }
+
 }

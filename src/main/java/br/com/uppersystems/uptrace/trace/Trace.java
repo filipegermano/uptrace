@@ -1,9 +1,22 @@
 package br.com.uppersystems.uptrace.trace;
 
 
-import br.com.uppersystems.uptrace.util.UrlUtil;
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.spi.ILoggingEvent;
+import static net.logstash.logback.marker.Markers.append;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.Enumeration;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.util.ObjectUtils;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,28 +28,13 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+
+import br.com.uppersystems.uptrace.util.UrlUtil;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.spi.ILoggingEvent;
 import lombok.Data;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.util.AntPathMatcher;
-import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.servlet.HandlerMapping;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.pattern.PathPattern;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.time.LocalDateTime;
-import java.util.Enumeration;
-import java.util.List;
-
-import static net.logstash.logback.marker.Markers.append;
 
 /**
  * Represents the trace message.
@@ -45,9 +43,11 @@ import static net.logstash.logback.marker.Markers.append;
  */
 @Data
 @Slf4j
-public class Trace {
+public class Trace implements Serializable {
 
-    private static final Logger logUp = LoggerFactory.getLogger("UP");
+	private static final long serialVersionUID = -6761259029509790960L;
+
+	private static final Logger logUp = LoggerFactory.getLogger("UP");
 
     @JsonIgnore
     public static final String NOME_TRACE = "trace";
@@ -75,9 +75,21 @@ public class Trace {
 
     private int resultStatus;
 
-    private String app;
+    private String serviceName;
+    
+    private String serviceVersion;
 
+    private String clientId;
+    
+    private String productName;
+    
+    private String sessionId; 
+    
     private String receivedFromAddress;
+    
+    private RequestResponseParser request;
+    
+    private RequestResponseParser response;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private StackTrace stackTrace;
@@ -116,7 +128,7 @@ public class Trace {
         setUrl(UrlUtil.getCurrentUrl(request));
 
         Enumeration<String> headers = request.getHeaders("x-forwarded-for");
-        if (ObjectUtils.isNotEmpty(headers)) {
+        if (!ObjectUtils.isEmpty(headers)) {
 
             List<String> listaIPs = Lists.newArrayList();
             while (headers.hasMoreElements()) {

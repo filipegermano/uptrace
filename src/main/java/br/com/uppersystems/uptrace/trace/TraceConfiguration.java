@@ -1,21 +1,42 @@
 package br.com.uppersystems.uptrace.trace;
 
 
-import ch.qos.logback.classic.Level;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.tomcat.util.json.JSONParser;
+import org.json.JSONObject;
+import org.json.JSONStringer;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
+import org.springframework.util.ObjectUtils;
 
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.JSONPObject;
+import com.google.common.base.Enums;
+import com.google.common.io.CharStreams;
+
+import br.com.uppersystems.uptrace.util.RequestResponseUtils;
+import ch.qos.logback.classic.Level;
+import lombok.extern.slf4j.Slf4j;
+import net.logstash.logback.composite.JsonWritingUtils;
 
 /**
  * Class responsible for configuring the Trace.
@@ -61,6 +82,25 @@ public class TraceConfiguration {
 
                     trace.setShouldPrint(false);
                 }
+                
+                HttpServletRequest requestHttp = (HttpServletRequest) request;
+                Enumeration<String> headerNames = requestHttp.getHeaderNames();
+                Map<String, String> map = RequestResponseUtils.convertToMap(headerNames, requestHttp);
+                String body = CharStreams.toString(requestHttp.getReader());
+                
+                //ObjectMapper mapper = new ObjectMapper();
+                //body = body.replace("\n", "").replace("\t", "").replace("\\", "");
+                //String asString = mapper.writeValueAsString(body);
+                
+                JSONObject j = new JSONObject(body);
+
+                RequestResponseParser requestTrace = new RequestResponseParser();
+                requestTrace.setHeaders(map);
+                requestTrace.setBody(j.toString());
+                
+                TraceContextHolder.getInstance().getActualTrace().setRequest(requestTrace);
+                
+                
                 chain.doFilter(request, response);
 
             } catch (Exception e) {
@@ -74,7 +114,7 @@ public class TraceConfiguration {
 
             } finally {
 
-                if (ObjectUtils.isNotEmpty(trace) && trace.isShouldPrint()) {
+                if (!ObjectUtils.isEmpty(trace) && trace.isShouldPrint()) {
 
                     trace.write(response);
                 } else {

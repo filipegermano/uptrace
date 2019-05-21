@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @NoArgsConstructor
 public class UpAppender extends AppenderBase<ILoggingEvent> {
 
-    private static final Logger logPierBackground = LoggerFactory.getLogger("UP_BACKGROUND");
+    private static final Logger logUpBackground = LoggerFactory.getLogger("UP_BACKGROUND");
 
     @Override
     public void start() {
@@ -44,7 +44,7 @@ public class UpAppender extends AppenderBase<ILoggingEvent> {
             if (!TraceContextHolder.getInstance().getActualTrace().isShouldPrint()) {
 
                 GeneralTrace trace = new GeneralTrace(event);
-                logPierBackground.info(Markers.append(Trace.NOME_TRACE, trace), "[UP-TRACE-BACKGROUND]");
+                logUpBackground.info(Markers.append(Trace.NOME_TRACE, trace), "[UP-TRACE-BACKGROUND]");
 
             } else if (!"UP".equals(event.getLoggerName()) && !"UP_BACKGROUND".equals(event.getLoggerName())) {
 
