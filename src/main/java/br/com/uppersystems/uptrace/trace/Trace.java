@@ -186,7 +186,7 @@ public class Trace implements Serializable {
         ObjectMapper mapper = new ObjectMapper();
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         String url = "";
-        if (ObjectUtils.isEmpty(getUrl())) {
+        if (!ObjectUtils.isEmpty(getUrl())) {
             url = getUrl();
         }
 
@@ -210,15 +210,15 @@ public class Trace implements Serializable {
             if (HttpStatus.valueOf(statusCode).is2xxSuccessful()) {
 
                 this.level = Level.INFO.levelStr;
-                logUp.info(append(NOME_TRACE, this), TAG_TRACE + " - " + url);
+                logUp.info(append(NOME_TRACE, this), TAG_TRACE + " - ResponseStatus: " + statusCode + " - URL: " + url);
             } else if (HttpStatus.valueOf(statusCode).is4xxClientError()) {
 
                 this.level = Level.WARN.levelStr;
-                logUp.warn(append(NOME_TRACE, this), TAG_TRACE + " - " + url);
+                logUp.warn(append(NOME_TRACE, this), TAG_TRACE + " - ResponseStatus: " + statusCode + " - URL: " + url);
             } else {
 
                 this.level = Level.ERROR.levelStr;
-                logUp.error(append(NOME_TRACE, this), TAG_TRACE + " - " + url);
+                logUp.error(append(NOME_TRACE, this), TAG_TRACE + " - ResponseStatus: " + statusCode + " - URL: " + url);
             }
         }
 
